@@ -107,7 +107,8 @@ void ValidateMiddlewaresConfiguration(
         const auto [_, inserted] = unique_names.emplace(middleware_name);
         if (!inserted) {
             throw std::runtime_error{
-                fmt::format("Middleware '{}' is present more than once in the pipeline", middleware_name)};
+                fmt::format("Middleware '{}' is present more than once in the pipeline", middleware_name)
+            };
         }
     }
 
@@ -175,7 +176,8 @@ HttpHandlerBase::HttpHandlerBase(
                     labels.emplace_back("http_path", utils::graphite::EscapeName(path));
                     return std::string{"http"};
                 },
-                [](FallbackHandler fallback) { return fmt::format("http.by-fallback.{}", ToString(fallback)); }},
+                [](FallbackHandler fallback) { return fmt::format("http.by-fallback.{}", ToString(fallback)); }
+            },
             GetConfig().path
         );
 
@@ -244,8 +246,6 @@ void HttpHandlerBase::HandleRequestStream(http::HttpRequest& http_request, reque
 }
 
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
-    auto& response = http_request.GetHttpResponse();
-
     // Don't hold the config snapshot for too long, especially with streaming.
     context.GetInternalContext().ResetConfigSnapshot();
 
@@ -254,6 +254,7 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
         HandleRequestStream(http_request, context);
     } else {
         // !IsBodyStreamed()
+        auto& response = http_request.GetHttpResponse();
         response.SetData(HandleRequest(http_request, context));
     }
 }
@@ -298,9 +299,11 @@ std::string HttpHandlerBase::HandleRequest(http::HttpRequest& request, request::
     return HandleRequestThrow(request, context);
 }
 
-void HttpHandlerBase::
-    HandleStreamRequest(server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
-        const {
+void HttpHandlerBase::HandleStreamRequest(
+    server::http::HttpRequest&,
+    server::request::RequestContext&,
+    server::http::ResponseBodyStream&
+) const {
     throw std::runtime_error(
         "stream HandleStreamRequest() is executed, but the handler doesn't "
         "override HandleStreamRequest()."
@@ -398,8 +401,10 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
     }
 }
 
-void HttpHandlerBase::HandleCustomHandlerException(const http::HttpRequest& request, const CustomHandlerException& ex)
-    const {
+void HttpHandlerBase::HandleCustomHandlerException(
+    const http::HttpRequest& request,
+    const CustomHandlerException& ex
+) const {
     auto http_status = http::GetHttpStatus(ex);
     const auto level = GetLogLevelForResponseStatus(http_status);
     LOG(level) << "custom handler exception in '" << HandlerName() << "' handler: msg=" << ex;
@@ -478,7 +483,8 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
             "It seems that you are building your ComponentList from scratch, "
             "append DefaultMiddlewareComponents() from "
             "userver/server/middlewares/configuration.hpp to it via "
-            "AppendComponentList()"};
+            "AppendComponentList()"
+        };
     }
 
     const auto middlewares_config = config["middlewares"];
@@ -505,7 +511,9 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
     }
 
     // Finalize the pipeline
-    { add_middleware(middlewares::HandlerAdapterFactory::kName); }
+    {
+        add_middleware(middlewares::HandlerAdapterFactory::kName);
+    }
 }
 
 yaml_config::Schema HttpHandlerBase::GetStaticConfigSchema() {
