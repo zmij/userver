@@ -16,12 +16,20 @@ namespace impl {
 inline constexpr std::string_view kHandlerName = "golden-shop-handlers-get-item";
 }
 
-using Handler = USERVER_NAMESPACE::chaotic::openapi::server::BaseHandler<
+/// @brief The handler, logging bodies and rendering undeclared errors with Policy,
+/// see chaotic::openapi::server::DefaultHandlerPolicy
+template <typename Policy = USERVER_NAMESPACE::chaotic::openapi::server::DefaultHandlerPolicy>
+using HandlerFor = USERVER_NAMESPACE::chaotic::openapi::server::BaseHandler<
 impl::kHandlerName,
 ErrorResponseBase,
 Request,
 Response,
 HandlerTag,
-View>;
+View,
+void,
+Policy
+>;
+
+using Handler = HandlerFor<>;
 
 }  // namespace golden::shop::handlers::getitem

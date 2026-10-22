@@ -4,6 +4,7 @@
 #include <golden/shop/handlers/getitem/handler.hpp>
 #include <golden/shop/handlers/putitem/handler.hpp>
 #include <userver/chaotic/openapi/server/dependencies.hpp>
+#include <userver/chaotic/openapi/server/handler_base.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/container.hpp>
 
@@ -16,10 +17,14 @@ namespace golden::shop::handlers {
 /// @code
 /// component_list.AppendComponentList(golden::shop::handlers::ChaoticHandlersList());
 /// @endcode
-inline USERVER_NAMESPACE::components::ComponentList ChaoticHandlersList() {
+///
+/// @tparam Policy logging and error rendering of all the handlers,
+/// see chaotic::openapi::server::DefaultHandlerPolicy
+template <typename Policy = USERVER_NAMESPACE::chaotic::openapi::server::DefaultHandlerPolicy>
+USERVER_NAMESPACE::components::ComponentList ChaoticHandlersList() {
 return USERVER_NAMESPACE::components::ComponentList()
-.Append<golden::shop::handlers::getitem::Handler>()
-.Append<golden::shop::handlers::putitem::Handler>()
+.template Append<golden::shop::handlers::getitem::HandlerFor<Policy>>()
+.template Append<golden::shop::handlers::putitem::HandlerFor<Policy>>()
 ;
 }
 

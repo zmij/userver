@@ -440,16 +440,13 @@ endfunction()
 # @param OUTPUT_DIR - where to put generated include/ and src/ trees
 # @param SRC_DIR - parent directory of handlers/NAME/; view stubs are written here (skipped if already present)
 # @param FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
-# @param POLICY - C++ type every generated handler logs bodies and renders undeclared errors with,
-#                 derived from chaotic::openapi::server::DefaultHandlerPolicy
-# @param POLICY_INCLUDE - header declaring POLICY, required with it
 # @multiparam SCHEMAS - OpenAPI YAML source files
 # @multiparam ARGS - extra arguments passed to chaotic-openapi-gen
 function(userver_target_generate_openapi_handlers TARGET)
     _userver_require_chaotic_openapi("userver_target_generate_openapi_handlers")
 
     set(OPTIONS)
-    set(ONE_VALUE_ARGS NAME OUTPUT_DIR SRC_DIR FORMAT POLICY POLICY_INCLUDE)
+    set(ONE_VALUE_ARGS NAME OUTPUT_DIR SRC_DIR FORMAT)
     set(MULTI_VALUE_ARGS SCHEMAS ARGS)
     cmake_parse_arguments(PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
 
@@ -496,12 +493,6 @@ function(userver_target_generate_openapi_handlers TARGET)
         list(APPEND _GEN_ARGS --gen handlers+views --src-dir "${_VIEWS_DIR}")
     else()
         list(APPEND _GEN_ARGS --gen handlers)
-    endif()
-    if(PARSE_POLICY OR PARSE_POLICY_INCLUDE)
-        if(NOT PARSE_POLICY OR NOT PARSE_POLICY_INCLUDE)
-            message(FATAL_ERROR "POLICY and POLICY_INCLUDE must be passed together")
-        endif()
-        list(APPEND _GEN_ARGS --handler-policy "${PARSE_POLICY}" --handler-policy-include "${PARSE_POLICY_INCLUDE}")
     endif()
 
     _userver_chaotic_query(
