@@ -56,6 +56,10 @@ def _security_kind(sec: model.Security) -> str:
     return 'http/basic'
 
 
+def transform_path(path: str) -> str:
+    return re.sub(DASH_IN_PATH_RE, '_', path)
+
+
 class BaseTranslator(abc.ABC):
     def __init__(
         self,
@@ -99,7 +103,7 @@ class BaseTranslator(abc.ABC):
         return []
 
     def _transform_path(self, path: str) -> str:
-        return re.sub(DASH_IN_PATH_RE, '_', path)
+        return transform_path(path)
 
     def _namespaces(self) -> dict[str, str]:
         if self._closure:
