@@ -1,6 +1,7 @@
 from typing import NoReturn
 
 from chaotic import error as chaotic_error
+from chaotic import layout
 from chaotic_openapi.back.cpp.client import middleware
 from chaotic_openapi.back.cpp.client import types
 from chaotic_openapi.back.cpp.common import types as common_types
@@ -19,6 +20,8 @@ class Translator(BaseTranslator):
         dynamic_config_schema_hash: str = '',
         include_dirs: list[str] | None,
         middleware_plugins: list[middleware.MiddlewarePlugin],
+        closure: layout.Closure | None = None,
+        include_dir: str | None = None,
     ) -> None:
         self._middleware_plugins = middleware_plugins
         super().__init__(
@@ -31,8 +34,11 @@ class Translator(BaseTranslator):
                 dynamic_config_schema_hash=dynamic_config_schema_hash,
                 operations=[],
                 schemas={},
+                include_dir=include_dir or '',
+                closure=closure,
             ),
             include_dirs=include_dirs,
+            closure=closure,
         )
 
     def should_generate_operation(self, op: model.Operation) -> bool:
