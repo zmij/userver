@@ -1,5 +1,6 @@
 import enum
 import re
+from typing import Annotated
 from typing import Any
 
 import pydantic
@@ -56,7 +57,8 @@ class Header(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#media-type-object
 class MediaType(base_model.BaseModel):
-    schema_: Schema = pydantic.Field(alias='schema', default=None)
+    # A media type without a schema carries any value
+    schema_: Schema = pydantic.Field(alias='schema', default_factory=dict)
     example: Any = None
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
     # encoding: dict[str, Encoding] = {}
@@ -80,11 +82,6 @@ class Response(base_model.BaseModel):
     headers: dict[str, Header | Ref] = pydantic.Field(default_factory=dict)
     content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
     # TODO: links
-
-    def model_post_init(self, context: Any, /) -> None:
-        if 'application/json' in self.content and not self.content['application/json'].schema_:
-            # empty application/json means the same "no body"
-            del self.content['application/json']
 
 
 class In(str, enum.Enum):
@@ -280,7 +277,8 @@ class Operation(base_model.BaseModel):
     operationId: str | None = None
     parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
     requestBody: RequestBody | Ref | None = None
-    responses: dict[str | int, Response | Ref]
+    # A Response validates any object with a description, a $ref must be tried first
+    responses: dict[str | int, Annotated[Ref | Response, pydantic.Field(union_mode='left_to_right')]]
     deprecated: bool = False
     security: Security | None = None
     servers: list[Server] = pydantic.Field(default_factory=list)
