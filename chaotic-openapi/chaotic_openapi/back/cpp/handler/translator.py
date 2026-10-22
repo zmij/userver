@@ -14,6 +14,8 @@ class HandlerTranslator(BaseTranslator):
         include_dirs: list[str] | None,
         closure: layout.Closure | None = None,
         include_dir: str | None = None,
+        handler_policy: str = '',
+        handler_policy_include: str = '',
     ) -> None:
         super().__init__(
             service,
@@ -22,6 +24,8 @@ class HandlerTranslator(BaseTranslator):
                 cpp_namespace=cpp_namespace,
                 include_dir=include_dir or '',
                 closure=closure,
+                handler_policy=handler_policy,
+                handler_policy_include=handler_policy_include,
             ),
             include_dirs=include_dirs,
             closure=closure,

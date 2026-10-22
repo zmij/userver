@@ -15,6 +15,9 @@ class ServerSpec(common_types.SpecBase):
     cpp_namespace: str
     include_dir: str = ''
     closure: layout.Closure | None = None
+    # C++ type of the project-wide handler policy and its header, see DefaultHandlerPolicy
+    handler_policy: str = ''
+    handler_policy_include: str = ''
     operations: list[Operation] = dataclasses.field(default_factory=list)
 
     # Internal types which cannot be referred to

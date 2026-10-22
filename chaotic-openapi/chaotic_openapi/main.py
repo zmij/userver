@@ -124,12 +124,16 @@ def do_main():
         if args.gen in ('handlers+views', 'views') and not args.src_dir:
             die(f'--src-dir is required for --gen {args.gen}')
 
+        if bool(args.handler_policy) != bool(args.handler_policy_include):
+            die('--handler-policy and --handler-policy-include must be passed together')
         spec = handler_translator.HandlerTranslator(
             parser.service(),
             cpp_namespace=(cpp_namespace or args.namespace or f'handlers::{args.name}'),
             include_dirs=None if not args.check_includes else args.include_dirs or [],
             closure=closure,
             include_dir=include_dir,
+            handler_policy=args.handler_policy,
+            handler_policy_include=args.handler_policy_include,
         ).spec()
 
         if args.gen in ('handlers', 'handlers+views'):
@@ -196,6 +200,15 @@ def parse_args() -> argparse.Namespace:
             'and exit without generating'
         ),
     )
+    parser.add_argument(
+        '--handler-policy',
+        default='',
+        help=(
+            'C++ type of the policy every generated handler logs bodies and renders undeclared errors with, '
+            'derived from chaotic::openapi::server::DefaultHandlerPolicy'
+        ),
+    )
+    parser.add_argument('--handler-policy-include', default='', help='Header declaring --handler-policy')
     parser.add_argument(
         '--clang-format',
         default='clang-format',

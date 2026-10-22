@@ -67,3 +67,16 @@ foreach(TAGGED_HANDLER api admin)
     target_link_libraries(${PROJECT_NAME}-tagged-handler-${TAGGED_HANDLER} ${PROJECT_NAME}-tagged-schemas)
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-tagged-handler-${TAGGED_HANDLER})
 endforeach()
+
+# Handlers with a project-wide policy
+userver_target_generate_openapi_handlers(
+    ${PROJECT_NAME}-handler-policy
+    NAME
+    policy
+    SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/policy/openapi.yaml
+    SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
+    POLICY test::policy::HandlerPolicy
+    POLICY_INCLUDE policy/handler_policy.hpp
+)
+target_include_directories(${PROJECT_NAME}-handler-policy PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-policy)
