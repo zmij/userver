@@ -100,16 +100,16 @@ def test_array_unique_items_valid_types(
     [
         {'type': 'number'},
         {'type': 'array', 'items': {'type': 'integer'}},
+        {'type': 'array', 'items': {'type': 'array', 'items': {'type': 'integer'}}},
     ],
 )
-def test_array_unique_items_invalid_type(simple_gen, item_schema):
-    with pytest.raises(cpp_translator.TranslatorError) as exc:
-        simple_gen({
-            'type': 'array',
-            'uniqueItems': True,
-            'items': item_schema,
-        })
-    assert exc.value.msg == ('uniqueItems is only supported for integer, string, and boolean item types')
+def test_array_unique_items_defers_item_type_check_to_cpp(simple_gen, item_schema):
+    types = simple_gen({
+        'type': 'array',
+        'uniqueItems': True,
+        'items': item_schema,
+    })
+    assert types['::type'].validators == cpp_types.CppArrayValidator(uniqueItems=True)
 
 
 def test_array_array_with_validators(simple_gen, cpp_primitive_type):

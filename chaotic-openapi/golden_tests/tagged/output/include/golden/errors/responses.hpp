@@ -23,6 +23,10 @@ ResponseConflictBodyApplicationJson Parse(
     USERVER_NAMESPACE::formats::json::Value json,
     USERVER_NAMESPACE::formats::parse::To<ResponseConflictBodyApplicationJson>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<ResponseConflictBodyApplicationJson>);
+
 ResponseConflictBodyApplicationJson FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<ResponseConflictBodyApplicationJson>);

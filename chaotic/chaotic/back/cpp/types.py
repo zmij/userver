@@ -342,9 +342,13 @@ class CppPrimitiveType(CppType):
                 f', USERVER_NAMESPACE::chaotic::ExclusiveMaximum<{type_name_ns}::k{type_name_decl}ExclusiveMaximum>'
             )
 
-        if self.validators.minLength is not None:
+        if self.validators.minLength is not None and self.validators.maxLength is not None:
+            validators += (
+                f', USERVER_NAMESPACE::chaotic::MinMaxLength<{self.validators.minLength}, {self.validators.maxLength}>'
+            )
+        elif self.validators.minLength is not None:
             validators += f', USERVER_NAMESPACE::chaotic::MinLength<{self.validators.minLength}>'
-        if self.validators.maxLength is not None:
+        elif self.validators.maxLength is not None:
             validators += f', USERVER_NAMESPACE::chaotic::MaxLength<{self.validators.maxLength}>'
 
         if self.validators.pattern is not None:
@@ -791,6 +795,29 @@ class CppStructField:
         optional = not self.required or self.schema.nullable
         return optional and self._default() is None
 
+    def _resolved_schema(self) -> CppType:
+        schema = self.schema
+        while isinstance(schema, CppRef):
+            schema = schema.orig_cpp_type
+        return schema
+
+    def is_required_to_parse(self) -> bool:
+        """True if parsing the object throws whenever this property is missing."""
+        if not self.required or self.schema.nullable or self._default() is not None:
+            return False
+
+        return isinstance(
+            self._resolved_schema(),
+            (CppPrimitiveType, CppStringWithFormat, CppIntEnum, CppStringEnum, CppStruct, CppArray),
+        )
+
+    def enum_type(self) -> CppType | None:
+        """The enum type of this property, or None if the property is not an enum."""
+        schema = self._resolved_schema()
+        if isinstance(schema, (CppIntEnum, CppStringEnum)):
+            return schema
+        return None
+
     def cpp_field_name(self) -> str:
         return self.name
 
@@ -870,13 +897,13 @@ class CppStruct(CppType):
     def cpp_user_name(self) -> str:
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
-            return f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+            return f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_value_cpp_type()}>'
         return super().cpp_user_name()
 
     def parser_type(self, ns: str, name: str) -> str:
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
-            dict_type = f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+            dict_type = f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_value_cpp_type()}>'
             parser_type = self._primitive_parser_type()
             return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {dict_type}>'
 
@@ -897,7 +924,7 @@ class CppStruct(CppType):
             case False:
                 unknown_fields = f'{ch}::UnknownFields::Forbid'
             case _:
-                unknown_fields = f'{ch}::UnknownFields::StoreTyped<{self.extra_type.parser_type(ch, name)}>'
+                unknown_fields = f'{ch}::UnknownFields::StoreTyped<{self.extra_parser_type(ch, name)}>'
 
         fields = [
             self.fields[field].descriptor_type(
@@ -918,6 +945,21 @@ class CppStruct(CppType):
         if isinstance(self.extra_type, CppType) and not self._is_default_dict():
             types.append(self.extra_type)
         return types
+
+    def extra_value_cpp_type(self) -> str:
+        """C++ type of an additionalProperties value, std::optional of the type if it is nullable"""
+        assert isinstance(self.extra_type, CppType)
+        cpp_type = self.extra_type.cpp_user_name()
+        if self.extra_type.nullable:
+            return f'std::optional<{cpp_type}>'
+        return cpp_type
+
+    def extra_parser_type(self, ns: str, name: str) -> str:
+        assert isinstance(self.extra_type, CppType)
+        parser_type = self.extra_type.parser_type(ns, name)
+        if self.extra_type.nullable:
+            return f'USERVER_NAMESPACE::chaotic::Nullable<{parser_type}>'
+        return parser_type
 
     def extra_container(self) -> str:
         kwargs = self.json_schema.x_properties
@@ -963,6 +1005,8 @@ class CppStruct(CppType):
             includes.extend(field.schema.definition_includes())
         if isinstance(self.extra_type, CppType):
             includes.extend(self.extra_type.definition_includes())
+            if self.extra_type.nullable:
+                includes.append('userver/chaotic/nullable.hpp')
         if self._is_default_dict():
             includes += self.get_includes_by_cpp_type(
                 'userver::utils::DefaultDict<>',

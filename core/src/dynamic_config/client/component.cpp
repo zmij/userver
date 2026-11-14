@@ -1,9 +1,11 @@
 #include <userver/dynamic_config/client/component.hpp>
 
+#include <unordered_map>
 #include <vector>
 
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/logging/log.hpp>
@@ -96,6 +98,8 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const Co
     }
     client_config.is_prestable = IsClownductorPrestable();
     client_config.circuit = ReadCircuit();
+    client_config.additional_request_params =
+        config["additional-request-params"].As<std::unordered_map<std::string, formats::json::Value>>({});
     client_config.config_url = config["config-url"].As<std::string>();
     client_config.fallback_config_urls = config["fallback-config-urls"].As<std::vector<std::string>>({});
 

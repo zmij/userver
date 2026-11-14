@@ -23,6 +23,10 @@ Error Parse(
     USERVER_NAMESPACE::formats::json::Value json,
     USERVER_NAMESPACE::formats::parse::To<Error>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Error>);
+
 Error FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Error>);

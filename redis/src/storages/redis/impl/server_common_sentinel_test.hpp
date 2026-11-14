@@ -1,8 +1,11 @@
 #pragma once
 
+#include <chrono>
+
 #include <storages/redis/impl/thread_pools.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/mock_server_test.hpp>
@@ -33,6 +36,9 @@ public:
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
 
     storages::redis::impl::Sentinel& SentinelClient() const { return *sentinel_client_; }
+
+    // Waits until the settings are applied to all Redis connections.
+    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings);
 
     void ResetSentinelClient() { sentinel_client_.reset(); }
 
@@ -65,7 +71,15 @@ public:
         int magic_value_add_master = 0,
         int magic_value_add_slave = 0,
         size_t redis_thread_count = 1,
-        storages::redis::impl::KeyShardFactory key_shard = {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32}
+        storages::redis::impl::KeyShardFactory key_shard = {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32},
+        std::chrono::seconds max_disconnect_time = std::chrono::seconds(35)
+    );
+
+    SentinelTest(
+        size_t sentinel_count,
+        size_t master_count,
+        size_t slave_count,
+        std::chrono::seconds max_disconnect_time
     );
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
@@ -89,6 +103,7 @@ private:
     void CreateSentinelClient(storages::redis::impl::KeyShardFactory key_shard);
 
     const std::string redis_name_{"redis_name"};
+    const std::chrono::seconds max_disconnect_time_;
     MockRedisServerArray masters_;
     MockRedisServerArray slaves_;
     MockRedisServerArray sentinels_;

@@ -8,6 +8,24 @@
 
 namespace golden {namespace errors {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Error>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("code")) {
+        return false;
+    }
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
+        if (!k__golden__errors__Error_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Error FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Error>)

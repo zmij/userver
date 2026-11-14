@@ -19,6 +19,7 @@ getitem::Response ClientImpl::getItem(const getitem::Request& request ,         
 ) {
 auto r = http_client_.CreateRequest();
 r.SetUrlTemplate("/items/{id}");
+
     r.SetDestinationMetricName(
         config_.base_url + "/items/_id_"
     );
@@ -45,6 +46,7 @@ putitem::Response ClientImpl::putItem(const putitem::Request& request ,         
 ) {
 auto r = http_client_.CreateRequest();
 r.SetUrlTemplate("/items/{id}");
+
     r.SetDestinationMetricName(
         config_.base_url + "/items/_id_"
     );

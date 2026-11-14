@@ -36,7 +36,8 @@ UTEST_F(YdbTransaction, DestructorRollsBackAfterCancellation) {
     });
     task.Get();
     EXPECT_EQ(GetMetrics().SingleMetric("ydb.by-query.success", {{"ydb_query", "Rollback"}}).AsRate().value, 1);
-    const auto cancelled = GetMetrics().SingleMetric("ydb.by-transaction.cancelled", {{"ydb_transaction", "cancel"}});
+    const auto metrics = GetMetrics();
+    const auto cancelled = metrics.SingleMetric("ydb.by-transaction.cancelled", {{"ydb_transaction", "cancel"}});
     EXPECT_EQ(cancelled.AsRate().value, 1);
 }
 
@@ -44,7 +45,9 @@ UTEST_F(YdbTransaction, RollbackAfterInheritedDeadline) {
     utils::impl::UserverExperimentsScope experiments;
     experiments.Set(utils::impl::kYdbDeadlinePropagationExperiment, true);
     auto transaction = GetTableClient().Begin("deadline");
-    server::request::kTaskInheritedData.Set(server::request::TaskInheritedData{.deadline = engine::Deadline::Passed()});
+    server::request::TaskInheritedData inherited_data;
+    inherited_data.deadline = engine::Deadline::Passed();
+    server::request::kTaskInheritedData.Set(std::move(inherited_data));
     EXPECT_THROW(transaction.Execute(ydb::Query{"SELECT 1"}), ydb::DeadlineExceededError);
     EXPECT_NO_THROW(transaction.Rollback());
     EXPECT_TRUE(server::request::GetTaskInheritedDeadline().IsReached());

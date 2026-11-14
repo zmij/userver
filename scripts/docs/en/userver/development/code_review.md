@@ -70,8 +70,9 @@ report unsuitable alternatives or request changes to unchanged code outside the 
 
 Keep documentation concise and easy to understand; use `@brief` where possible.
 
-Check that each new public method, including overloads, documents its contract,
-and each added or changed enum value documents its meaning. Update documentation
+Check that each new public method, including overloads, documents its contract.
+Special member functions may omit doc comments under the rule in section 18.
+Check that each added or changed enum value documents its meaning. Update documentation
 when contracts change. Read declarations, implementations, tests, and documentation
 before reporting gaps. Accept inherited documentation or working Doxygen references
 that fully cover the contract instead of requiring duplicate prose.
@@ -90,11 +91,12 @@ Identify the undocumented contract, missing or incorrect reference, or untested
 example, and explain the unclear behavior, missing API navigation, or risk of
 example drift that the author should address.
 
-## 4. Move values when it avoids unnecessary copies
+## 4. Make ownership clear and avoid unnecessary copies
 
-Make ownership clear: use values or `std::unique_ptr` for owned objects,
-and `std::shared_ptr` only when shared ownership is required. For borrowed objects,
-use references when their lifetime is guaranteed.
+Use values or `std::unique_ptr` for owned objects, and `std::shared_ptr` only when
+shared ownership is required. For every added `std::shared_ptr`, verify that more than
+one owner must extend the object's lifetime; otherwise request a value or
+`std::unique_ptr`. For borrowed objects, use references when their lifetime is guaranteed.
 
 For clients provided by component dependencies, a reference is usually sufficient,
 including as a member: the component system guarantees that these clients outlive
@@ -153,10 +155,10 @@ listings; clarity takes precedence over this recommendation.
 | ---- | ------- |
 | `bug` | Fixing a noticeable bug. |
 | `fix` | Fixing a bug. |
-| `feat` | Adding functionality or tests. |
+| `feat` | Adding publicly visible functionality. |
 | `refactor` | Substantially changing code without adding functionality. |
 | `typo` | Trivial typos or minor corrections that do not belong in release notes. |
-| `cc` | Coding conventions, comments, or documentation. |
+| `cc` | Coding conventions, comments, documentation, or userver's own tests. |
 
 Choose the component primarily affected:
 
@@ -182,9 +184,38 @@ Explain the problem and resulting behavior; a linked public issue that fully
 explains the change can replace the description. Separate the description from
 the title, and optional trailers from the description, with blank lines.
 
-Prefer public issue links and a normal validation paragraph over `Relates:` and
-`Tests:` trailers; neither trailer is required. Describe the validation actually
-performed and any material limitations.
+Put any needed `Changelog entry:` and `Migration guide:` sections first.
+Omit unneeded sections entirely, without placeholders or no-entry statements.
+Keep the text consistent with the final diff and include the same sections in
+the integration commit message: the release tool reads commit messages. When
+updating a PR, preserve author-written text unless the final change makes it
+inaccurate.
+
+Separate these sections from the detailed description with a standalone `---`,
+surrounded by blank lines. If neither section is needed, start directly with the
+description.
+
+Write the detailed description after `---` in Markdown. When the optional sections
+are omitted, use Markdown for the entire description:
+
+- Use bullet lists to enumerate distinct changes, with one change per item.
+- Wrap code fragments and names of C++ entities in backticks. Use fully qualified
+  entity names, including namespaces, such as `utils::statistics::VisitMetrics`.
+- Markdown links may point to userver source code in the
+  [GitHub repository](https://github.com/userver-framework/userver) or to external
+  sources.
+
+Add context, rationale, or implementation explanations in paragraphs when they
+are not evident from the diff. Keep the prescribed Doxygen syntax in the
+`Changelog entry:` and `Migration guide:` sections.
+
+Do not edit release changelog files or run release-wide generation just to
+prepare a PR description.
+
+Prefer public issue links over `Relates:` trailers; this trailer is not required.
+Do not add a `Validation` section or another "how tested" section to PR
+descriptions. Report performed checks and material limitations in the handover
+chat instead.
 
 ## 7. Check algorithmic complexity
 
@@ -211,7 +242,7 @@ visible when required by template instantiation or `constexpr` evaluation, and
 preserve the public API and semantics. Identify the state or methods that can be
 extracted and explain why they can move out of the header.
 
-## 9. Prefer meaningful enums to bool parameters
+## 9. Prefer meaningful enums and structs to ambiguous parameters
 
 Avoid `bool` function parameters where possible: boolean arguments make call sites
 hard to read because their meaning is hidden in the function declaration.
@@ -219,23 +250,39 @@ Use enums with meaningful values instead. As an illustrative example, replace
 `Call(true, false)` with `Call(kHighPriority, kReadOnly)`, where `kHighPriority`
 and `kReadOnly` are enum values describing the requested behavior.
 
+If a function, a method or a constructor takes parameters that tune its behavior,
+pass them as one struct with named fields. Then a call site names every value,
+for example `Connect(host, {.timeout = 1s, .max_retries = 3})`.
+
 ## 10. Write clear and defensive code
 
 Use modern C++20 and established project practices. Make contracts explicit and
 use defensive checks. Check invariants with @ref UASSERT and @ref UASSERT_MSG
 from `<userver/utils/assert.hpp>`. Configuration errors must be informative and
 include hints on how to fix them where possible. Avoid no-op code, which can be misleading.
+Do not conflate absent, null and empty values when they mean different things,
+e.g. a missing JSON field, an explicit `null` and `""`.
 
 Keep code simple and self-explanatory: use clear names and small, focused functions.
 Replace magic numbers and strings with named `constexpr` constants or equivalents.
-Do not add comments to production code; express behavior through code instead.
-In tests, add comments only when names and code structure cannot convey the behavior.
+Code comments should clarify intent, rationale, and contracts rather than paraphrase
+the implementation. Explanations of how the implementation works are appropriate
+for non-obvious implementation details.
 
 ## 11. Cover new behavior and bug fixes with tests
 
 New functionality and bug fixes must have tests. Add or update relevant documentation.
 For flaky failures caused by production code rather than the test itself, first
 add a test that reliably reproduces the bug without flakiness, then fix the code.
+
+Keep the test set minimal. A bug fix needs one test that fails without the fix;
+add another test only if it covers a distinct behavior of the change that no other
+new or existing test exercises. When reviewing, request removal of tests that:
+- repeat the same code path with a different API flavor (sync/async, unary/streaming,
+  retry/no retry) unless the change affects that flavor specifically;
+- check scenarios that are practically unreachable or need artificial setup
+  that does not occur in real usage;
+- duplicate assertions of existing tests.
 
 ## 12. Use userver synchronization and I/O primitives
 
@@ -252,6 +299,61 @@ documentation from this check.
 ## 14. Use fmt for formatting
 
 Use the `fmt` library for formatting instead of `std::format` and similar APIs.
+Build strings with `fmt::format` rather than chains of `operator+`, `std::to_string`,
+or `std::ostringstream`.
+
+## 15. Protect component-lifetime tasks from overload cancellation
+
+When a component starts a non-critical task with an `Async` variant, check
+whether the task is expected to keep running until the component is destroyed,
+for example in a loop that stops only during component shutdown. If task
+processor overload cancellation is enabled, the cancellation can make the task
+exit permanently and stop the work it performs.
+
+Report this risk when the task has no restart mechanism. Ask the author to use
+the corresponding `CriticalAsync` variant or override
+@ref USERVER_TASK_PROCESSOR_QOS for the relevant task processor so overload
+does not cancel the task.
+
+## 16. Check behavior on errors, cancellation and concurrency
+
+For added or changed code paths, check that:
+- task cancellation and deadline expiration are observed, do not hang the code,
+  and leave the state consistent;
+- shared state is properly synchronized, and data read before a suspension
+  point is not assumed to be still valid after it;
+- an error or exception in the middle of an operation does not leave partially
+  applied changes unless the contract allows it;
+- retries do not repeat a non-idempotent side effect.
+
+## 17. Keep logs and metrics useful
+
+Log a failure once, at the level that handles it, rather than on every layer it
+passes through. Do not log unbounded data, personal data or secrets.
+Metric labels must have bounded cardinality: no user ids, request ids or other
+unbounded values. Metric names and descriptions must match what is actually measured.
+
+## 18. Follow local code formatting conventions
+
+Separate `USERVER_NAMESPACE_BEGIN` and `USERVER_NAMESPACE_END` from adjacent code,
+leave a blank line after a namespace opening, and separate member function
+declarations with a blank line, except for the special member functions below.
+
+Special member functions may omit doc comments when they have no special behavior
+that needs explaining. Place them consecutively after ordinary constructors, in
+this order: copy constructor, move constructor, copy assignment, move assignment,
+destructor. Do not put blank lines within this group.
+
+During code review or self-review, check these separators explicitly;
+formatter success alone does not establish compliance with local spacing conventions.
+
+## 19. Qualify free function calls in headers
+
+In header files, qualify calls to free functions with their namespace, even when
+the function is declared in the current namespace, to prevent unintended
+argument-dependent lookup (ADL). Unqualified calls can find unrelated overloads
+in argument types' namespaces, causing ambiguity or changing behavior.
+Keep unqualified calls only where ADL is an intentional customization mechanism.
 
 ----------
 

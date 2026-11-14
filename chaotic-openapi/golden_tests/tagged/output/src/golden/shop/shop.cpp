@@ -15,6 +15,21 @@ namespace golden {namespace shop {namespace items_id {namespace get {
 }  // namespace golden
 namespace golden {namespace shop {namespace items_id {namespace put {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Response200BodyApplicationJson>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
+        if (!k__golden__shop__items_id__put__Response200BodyApplicationJson_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Response200BodyApplicationJson FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Response200BodyApplicationJson>)

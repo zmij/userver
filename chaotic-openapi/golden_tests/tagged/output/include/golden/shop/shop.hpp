@@ -39,6 +39,10 @@ Response200BodyApplicationJson Parse(
     USERVER_NAMESPACE::formats::json::Value json,
     USERVER_NAMESPACE::formats::parse::To<Response200BodyApplicationJson>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Response200BodyApplicationJson>);
+
 Response200BodyApplicationJson FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Response200BodyApplicationJson>);
