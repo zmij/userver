@@ -104,16 +104,6 @@ struct MaxLength final {
     }
 };
 
-/// A free-form object is a JSON value, which must still be an object
-struct IsObject final {
-    template <typename T, typename ErrorReporter>
-    static void Validate(const T& value, ErrorReporter report_error) {
-        if (!value.IsObject()) {
-            report_error("Invalid value, expected an object");
-        }
-    }
-};
-
 /// @brief Checks inclusive UTF-8 code point length bounds with a single count.
 template <std::int64_t Min, std::int64_t Max>
 struct MinMaxLength final {
