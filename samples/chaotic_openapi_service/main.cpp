@@ -1,3 +1,4 @@
+#include <userver/chaotic/openapi/client/digest_auth_component.hpp>
 #include <userver/chaotic/openapi/middlewares/component_list.hpp>
 #include <userver/chaotic/openapi/middlewares/qos_middleware.hpp>
 #include <userver/chaotic/openapi/server/dependencies.hpp>
@@ -53,6 +54,7 @@ int main(int argc, char* argv[]) {
             .Append<::clients::test::Component>()
             /// [register-client]
             /// [register-digest-client]
+            .Append<USERVER_NAMESPACE::chaotic::openapi::client::DigestAuthProviderComponent>()
             .Append<::clients::secure::Component>()
             /// [register-digest-client]
             /// [register-handlers]
