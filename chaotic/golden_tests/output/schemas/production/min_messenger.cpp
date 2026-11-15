@@ -2517,7 +2517,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
     USERVER_NAMESPACE::formats::json::ValueBuilder vb
             = USERVER_NAMESPACE::formats::common::Type::kObject;
     vb["status"] =
-        USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
+        USERVER_NAMESPACE::chaotic::FreeFormObject{
             value.status
         };
 
@@ -2537,7 +2537,7 @@ void WriteToStream(
 
     if (hide_field_name != "status") {
         sw.Key("status");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::FreeFormObject{
             value.status
         }, sw);
     }
@@ -2625,7 +2625,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
             value.current_user
         };
     vb["status"] =
-        USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
+        USERVER_NAMESPACE::chaotic::FreeFormObject{
             value.status
         };
 
@@ -2651,7 +2651,7 @@ void WriteToStream(
     }
     if (hide_field_name != "status") {
         sw.Key("status");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::FreeFormObject{
             value.status
         }, sw);
     }

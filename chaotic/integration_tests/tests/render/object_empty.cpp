@@ -46,8 +46,7 @@ TEST(Simple, ExtraOnlySax) {
 
 TEST(Simple, ExtraOnlySaxInvalidAndReuse) {
     chaotic::sax::Parser<ns::ObjectExtraOnly> parser;
-    // A top-level free-form object is an alias of formats::json::Value, only a field of the type checks for an object
-    for (const std::string_view input : {"{", R"({"key":[1,})"}) {
+    for (const std::string_view input : {"null", "true", "42", R"("text")", "[]", "{", R"({"key":[1,})"}) {
         EXPECT_THROW((formats::json::parser::impl::ParseSingle(parser, input)), formats::json::parser::ParseError);
         const auto result = formats::json::parser::impl::ParseSingle(parser, R"({"ok":true})");
         EXPECT_EQ(result, formats::json::FromString(R"({"ok":true})"));
